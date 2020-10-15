@@ -1,0 +1,325 @@
+<?xml version="1.0" ?>
+<robot name="bookcase"  xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <link name="base_footprint">
+      <inertial>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <mass
+            value="0.1" />
+        <inertia
+            ixx="1"
+            ixy="0"
+            ixz="0"
+            iyy="1"
+            iyz="0"
+            izz="1" />            
+      </inertial>
+    </link>
+
+    <link name="bookcase">
+        <visual>
+            <geometry>
+                <mesh filename="bookcase.obj"/>
+            </geometry>
+            <material name="brown">
+                <color rgba="0.4 0.2 0.1 1"/>
+            </material>
+        </visual>
+        
+        <collision>
+            <origin rpy="0 0 0" xyz="0.4 0.2 1.08"/>
+            <geometry>
+	 	        <box size="0.8 0.4 0.02"/>
+            </geometry>
+        </collision>
+        
+        <collision>
+            <origin rpy="0 0 0" xyz="0.4 0.2 0.73"/>
+            <geometry>
+	 	        <box size="0.8 0.4 0.02"/>
+            </geometry>
+        </collision>
+        
+        <collision>
+            <origin rpy="0 0 0" xyz="0.4 0.2 0.38"/>
+            <geometry>
+	 	        <box size="0.8 0.4 0.02"/>
+            </geometry>
+        </collision>
+        
+        <collision>
+            <origin rpy="0 0 0" xyz="0.4 0.2 0.02"/>
+            <geometry>
+	 	        <box size="0.8 0.4 0.02"/>
+            </geometry>
+        </collision>
+        
+        <collision>
+            <origin rpy="0 0 0" xyz="0.38 0.2 0.56"/>
+            <geometry>
+	 	        <box size="0.02 0.4 1.2"/>
+            </geometry>
+        </collision>
+        
+        <collision>
+            <material name="c">
+                <color rgba="0.7 0 0 1.0" />
+            </material>
+            <origin rpy="0 0 0" xyz="0.75 0.2 0.56"/>
+            <geometry>
+	 	        <box size="0.02 0.4 1.2"/>
+            </geometry>
+        </collision>
+        
+        <collision>
+            <origin rpy="0 0 0" xyz="0.02 0.2 0.56"/>
+            <geometry>
+	 	        <box size="0.02 0.4 1.2"/>
+            </geometry>
+        </collision>
+    </link>
+
+    # Copied from wheels.urdf.
+    <link name="r_wheel_link">
+        <visual>
+          <origin xyz="-0.0 -0.0025 0.0" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.04 0.005 0.48" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 0.015 0.19625" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.02 0.03 0.0025" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 0.015 -0.19625" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.02 0.03 0.0025" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.0125 0.22" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.015" radius="0.02" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.0125 -0.22" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.015" radius="0.02" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.075 -0.24" />
+          <material name="c">
+            <color rgba="1.0 1.0 1.0 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.026" radius="0.035" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.075 -0.24" />
+          <material name="c">
+            <color rgba="0.5 0.5 0.5 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.025" radius="0.0375" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.045 -0.22" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.03 0.05 0.05" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.075 0.24" />
+          <material name="c">
+            <color rgba="1.0 1.0 1.0 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.026" radius="0.035" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.075 0.24" />
+          <material name="c">
+            <color rgba="0.5 0.5 0.5 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.025" radius="0.0375" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.045 0.22" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.03 0.05 0.05" />
+          </geometry>
+        </visual>
+    </link>
+
+    # Copied from wheels.urdf.
+    <link name="l_wheel_link">
+        <visual>
+          <origin xyz="-0.0 -0.0025 0.0" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.04 0.005 0.48" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 0.015 0.19625" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.02 0.03 0.0025" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 0.015 -0.19625" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.02 0.03 0.0025" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.0125 0.22" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.015" radius="0.02" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.0125 -0.22" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.015" radius="0.02" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.075 -0.24" />
+          <material name="c">
+            <color rgba="1.0 1.0 1.0 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.026" radius="0.035" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.075 -0.24" />
+          <material name="c">
+            <color rgba="0.5 0.5 0.5 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.025" radius="0.0375" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.045 -0.22" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.03 0.05 0.05" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.075 0.24" />
+          <material name="c">
+            <color rgba="1.0 1.0 1.0 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.026" radius="0.035" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.075 0.24" />
+          <material name="c">
+            <color rgba="0.5 0.5 0.5 1.0" />
+          </material>
+          <geometry>
+            <cylinder length="0.025" radius="0.0375" />
+          </geometry>
+        </visual>
+        <visual>
+          <origin xyz="0.0 -0.045 0.22" />
+          <material name="c">
+            <color rgba="0.7 0.7 0.7 1.0" />
+          </material>
+          <geometry>
+            <box size="0.03 0.05 0.05" />
+          </geometry>
+        </visual>
+    </link>
+
+    <joint
+        name="base_to_l_wheel"
+        type="fixed">
+      <origin
+          xyz="0.738 0.2 0.1125" 
+          rpy="1.57 0 0"/>
+      <parent
+          link="base_footprint" />
+      <child
+          link="l_wheel_link" />
+    </joint>
+
+    <joint
+        name="base_to_bookcase"
+        type="fixed">
+      <origin
+          xyz="0.0 0.0 0.1125" />
+      <parent
+          link="base_footprint" />
+      <child
+          link="bookcase" />
+    </joint>
+
+    <joint
+        name="base_to_r_wheel"
+        type="fixed">
+      <origin
+          xyz="0 0.2 0.1125"
+          rpy="1.57 0 0" />
+      <parent
+          link="base_footprint" />
+      <child
+          link="r_wheel_link" />
+    </joint>
+
+</robot>
+
