@@ -273,7 +273,7 @@ class cRRT(RRT):
         self.samples = []
         self.max_plan = max_plan
 
-    def project(self, q, disp=1, maxiter=1000):
+    def project(self, q, disp=1, maxiter=50):
         res = self.projector.project(q, disp=disp, maxiter=maxiter)
         return res['q'], res['nfev'], res['stat']
 
@@ -288,8 +288,10 @@ class cRRT(RRT):
         else:
             while status is False:
                 sample = self.sampler.sample()
+#                 proj_sample = sample
+#                 status = True
+#                 nfev = 0
                 proj_sample, nfev, status = self.project(sample.flatten())
-                #status = True
             #proj_sample, nfev = sample.flatten(), 0
         return proj_sample, nfev
 
@@ -390,9 +392,12 @@ class cRRT(RRT):
         print("Solution found!")
         # find the path
         path = nx.dijkstra_path(self.G, 0, self.G.number_of_nodes() - 1)
-
         toc = time.time()
-        return path, total_projection, total_extension, success, self.retry, toc - tic
+        traj = []
+        for i in path:
+            traj += [self.samples[i]]
+        traj = np.array(traj)
+        return traj, total_projection, total_extension, success, self.retry, toc - tic
 
     def shortcut_path(self, path_in, step_length=0.1):
         # simple shortcutting algo trying to iteratively remove nodes from the path
