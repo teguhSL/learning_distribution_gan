@@ -264,6 +264,20 @@
 
   </link>-->
 
+  <joint name="panda_hand_joint2" type="fixed">
+    <parent link="panda_hand"/>
+    <child link="panda_hand2"/>
+    <origin rpy="0  0" xyz="0 0 0"/>
+  </joint>
+  <link name="panda_hand2">
+    <visual>
+      <origin rpy="0 -1.5707963 0" xyz="0 0 0"/>
+      <material name="">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+  </link>
+
   <link name="panda_leftfinger">
     <visual>
       <geometry>

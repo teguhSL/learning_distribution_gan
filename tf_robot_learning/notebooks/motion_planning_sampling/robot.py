@@ -314,7 +314,7 @@ class cRRT(RRT):
             self.prev_state = next_states[-1]
             if self.check_collision(cur_state) or status is False:
                 break
-            elif (np.linalg.norm(cur_state - next_states[-1])) > 3 * step_length:
+            elif (np.linalg.norm(cur_state - next_states[-1])) > 30 * step_length:
                 print('moving to larger distance by interpolation')
                 print(cur_state)
                 print(next_states[-1])

@@ -344,7 +344,7 @@ class TalosCostProjectorNew():
         if self.cost2 is not None:
             self.cost2.costs['posture'].cost.desired_posture = q.copy()
 
-            #self.cost2.costs['posture'].cost.desired_posture[-14:-7] = q0Complete[-14:-7]  # for the left hand, use the default posture
+            self.cost2.costs['posture'].cost.desired_posture[-14:-7] = q0Complete[-14:-7]  # for the left hand, use the default posture
 #         else:
 #             self.cost.costs['posture'].cost.desired_posture = q.copy()
 
@@ -356,6 +356,29 @@ class TalosCostProjectorNew():
         res = {'stat': status, 'q': self.cost.qs[-1], 'qs': self.cost.qs, 'nfev': i+1,
                'feval': self.cost.feval}
         return res
+    
+#     def find_direction(self, q):
+#         r1 = self.cost.calc(q)
+#         J1 = self.cost.calcDiff(q)
+#         rcond = self.mu*r1.T.dot(r1) + self.mu_ext
+#         J1_pinv = np.linalg.pinv(J1, rcond=rcond)
+#         #J1_pinv = np.linalg.inv(J1.T.dot(J1)+rcond*np.eye(J1.shape[1])).dot(J1.T)
+#         #print(np.allclose(J1_pinv, J1_pinv2))
+#         dq1 = J1_pinv.dot(r1)
+        
+#         if self.cost2 is None:
+#             return dq1
+        
+#         N1 = np.eye(J1.shape[1]) - J1_pinv.dot(J1)
+#         r2 = self.cost2.calc(q)
+#         rcond2 = self.mu_ext #+  self.mu*r2.T.dot(r2) 
+#         J2 = self.cost2.calcDiff(q)
+#         dq2 = np.linalg.lstsq(J2.dot(N1), r2 - J2.dot(dq1), rcond=rcond2)[0]
+#         dq2 = N1.dot(dq2)
+#         #dq2 = np.linalg.pinv(J2.dot(N1), rcond=rcond2).dot(r2 - J2.dot(dq1))
+        
+#         #dq = dq1 + self.alpha2*N1.dot(dq2)
+#         return dq1, dq2
     
     def find_direction(self, q):
         r1 = self.cost.calc(q)
@@ -373,24 +396,27 @@ class TalosCostProjectorNew():
         r2 = self.cost2.calc(q)
         rcond2 = self.mu_ext #+  self.mu*r2.T.dot(r2) 
         J2 = self.cost2.calcDiff(q)
-        dq2 = np.linalg.lstsq(J2.dot(N1), r2 - J2.dot(dq1), rcond=rcond2)[0]
+        J2_pinv = np.linalg.pinv(J2.dot(N1), rcond = rcond2)
+        #dq2 = np.linalg.lstsq(J2.dot(N1), r2 - J2.dot(dq1), rcond=rcond2)[0]
+        #dq2 = N1.dot(dq2)
         #dq2 = np.linalg.pinv(J2.dot(N1), rcond=rcond2).dot(r2 - J2.dot(dq1))
         
-        dq = dq1 + self.alpha2*N1.dot(dq2)
-        return dq
+        #dq = dq1 + self.alpha2*N1.dot(dq2)
+        return dq1, r2, J2, J2_pinv, N1
     
-    def step(self, q, max_iter = 100, line_search = True):
+    def step(self, q, max_iter = 20, line_search = True):
         #find step direction
-        dq = self.find_direction(q)
-        C = self.cost.res.dot(self.cost.J).dot(dq)
+        dq1, r2, J2, J2_pinv, N1 = self.find_direction(q)
         #line search
-        c0 = np.sum(self.cost.res**2)
-        alpha = self.alpha
-        c = 1e10
-        i = 0
         if line_search:
-            while c >= c0 - self.c1*alpha*C + 1e-5 :
-                qn = q - alpha*dq
+            #first line search
+            C1 = self.cost.res.dot(self.cost.J).dot(dq1)
+            c0 = np.sum(self.cost.res**2)
+            alpha = self.alpha
+            c = 1e10
+            i = 0
+            while c >= c0 - self.c1*alpha*C1 + 1e-5 :
+                qn = q - alpha*dq1
                 qn = clip_bounds(qn, self.cost.costs['joint_limit'].cost.bounds)
                 r1 = self.cost.calc(qn)
                 c = np.sum(self.cost.res**2)
@@ -401,11 +427,37 @@ class TalosCostProjectorNew():
                     print('Cannot get a good step length')
                     break
             q = qn
-        else:
-            q = q - alpha*dq
-            r1 = self.cost.calc(qn)
-        #print(i,c,c0)  
+            
+            #second line search
+            self.cost.calc(q)
+            c0 = np.sum(self.cost.res**2)
+            #self.cost2.calc(q)
+            #C2 = self.cost2.res.dot(self.cost2.J).dot(dq2)
+            dq2 = J2_pinv.dot(r2 - J2.dot(alpha*dq1))
+            dq2 = N1.dot(dq2)
+            #c2_0 = np.sum(self.cost2.res**2)
+            alpha2 = self.alpha2
+            c = 1e10
+            i = 0
+            while c >= c0 + 1e-3 :
+                qn = q - alpha2*dq2
+                qn = clip_bounds(qn, self.cost.costs['joint_limit'].cost.bounds)
+                r = self.cost.calc(qn)
+                c = np.sum(self.cost.res**2)
+                i += 1
+                #print(alpha,c,c0) 
+                #input()
+                alpha2 = alpha2*self.alpha_fac
+                if i > max_iter:
+                    print('Cannot get a good step length2')
+                    break
         
+            q = qn
+        else:
+            q = q - alpha*dq1
+            r1 = self.cost.calc(q)
+        #print(i,c,c0)  
+        #print(alpha, alpha2)
         feasible1 = False not in self.cost.feasibles
         if self.cost2 is None:
             return q, feasible1
