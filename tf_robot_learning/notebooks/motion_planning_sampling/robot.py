@@ -288,6 +288,7 @@ class cRRT(RRT):
         else:
             while status is False:
                 sample = self.sampler.sample()
+                self.raw_sample = sample
 #                 proj_sample = sample
 #                 status = True
 #                 nfev = 0
@@ -314,7 +315,7 @@ class cRRT(RRT):
             self.prev_state = next_states[-1]
             if self.check_collision(cur_state) or status is False:
                 break
-            elif (np.linalg.norm(cur_state - next_states[-1])) > 30 * step_length:
+            elif (np.linalg.norm(cur_state - next_states[-1])) > 3 * step_length:
                 print('moving to larger distance by interpolation')
                 print(cur_state)
                 print(next_states[-1])
@@ -487,15 +488,19 @@ class talos_sampler():
     """
     Sampler for Talos: for base and joint angles
     """
-    def __init__(self, base_sampler, base_ori, joint_sampler):
+    def __init__(self, base_sampler, base_ori, joint_sampler, q_ref = None):
         self.base_sampler = base_sampler
         self.base_ori = base_ori
         self.joint_sampler = joint_sampler
-
+        self.q_ref = q_ref
+        
     def sample(self, N=1):
         samples = []
         for i in range(N):
-            samples += [np.concatenate([self.base_sampler.sample()[0], self.base_ori, self.joint_sampler.sample()[0]])]
+            sample = np.concatenate([self.base_sampler.sample()[0], self.base_ori, self.joint_sampler.sample()[0]])
+            if self.q_ref is not None:
+                sample[-14:-7] = self.q_ref[-14:-7] #force the left hand to assume standard values
+            samples += [sample]
         return np.array(samples)
 
 
