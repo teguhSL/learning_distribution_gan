@@ -72,8 +72,6 @@ class Robot():
             
         return False
         
-        
-        
     def plot(self):
         x = [0., self.l1*np.cos(self.theta1), self.l1*np.cos(self.theta1) + self.l2*np.cos(self.theta1+ self.theta2)]
         y = [0., self.l1*np.sin(self.theta1), self.l1*np.sin(self.theta1) + self.l2*np.sin(self.theta1+ self.theta2)]
@@ -179,7 +177,7 @@ class RRT():
         success = False
         #sample random state
         self.random_sample = self.sample()
-        #set_q_std(random_sample)
+
         #find a nearest node
         nearest_index, nearest_sample = self.find_nearest(self.random_sample, np.array(self.samples))
 
