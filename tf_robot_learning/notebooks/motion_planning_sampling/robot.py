@@ -291,6 +291,7 @@ class cRRT(RRT):
 #                 status = True
 #                 nfev = 0
                 proj_sample, nfev, status = self.project(sample.flatten())
+                
             #proj_sample, nfev = sample.flatten(), 0
         return proj_sample, nfev
 
@@ -346,6 +347,10 @@ class cRRT(RRT):
         self.next_states, nfev = self.extend(nearest_index[0], nearest_sample.flatten(), self.random_sample.flatten())
         nfevs += nfev
         q_reach_a = self.next_states[-1]
+        
+        #if only one state, break
+        if len(self.next_states) <= 1:
+            return False, nfevs
 
         # extend to the goal
         # find the nearest goal

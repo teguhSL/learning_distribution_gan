@@ -47,9 +47,9 @@ class CostCOMBoundsNew:
         if compute_first is False:
             pin.forwardKinematics(self.rmodel, self.rdata, q)
         self.com = pin.centerOfMass(self.rmodel, self.rdata, q)
-        return (self.com - self.bounds[0]) * (self.com < self.bounds[0]) +  \
+        self.res =  (self.com - self.bounds[0]) * (self.com < self.bounds[0]) +  \
                 (self.com - self.bounds[1]) * ( self.com > self.bounds[1])
-
+        return self.res
         
     def calcDiff(self, q, recalc = False):
         if recalc:
@@ -75,7 +75,7 @@ class CostPostureNew:
             self.weights = np.ones(rmodel.nv)
         else:
             self.weights = weights
-        self.J = np.diag(self.weights) 
+        self.weight_matrix = np.diag(self.weights) 
         
     def calc(self, q):
         self.res = self.weights*pin.difference(self.rmodel, self.desired_posture, q)
@@ -84,7 +84,7 @@ class CostPostureNew:
     def calcDiff(self, q, recalc = False):
         if recalc:
             self.calc(q)
-        self.J = pin.dDifference(self.rmodel, self.desired_posture, q)[1]
+        self.J = (pin.dDifference(self.rmodel, self.desired_posture, q)[1]).dot(self.weight_matrix)
         return self.J       
 
     
@@ -250,12 +250,7 @@ class TalosCostProjectorNew():
         self.cost.reset_iter()
         if self.cost2 is not None:
             self.cost2.costs['posture'].cost.desired_posture = q.copy()
-
             #self.cost2.costs['posture'].cost.desired_posture[-14:-7] = q0Complete[-14:-7]  # for the left hand, use the default posture
-#         else:
-#             self.cost.costs['posture'].cost.desired_posture = q.copy()
-
-#             self.cost.costs['posture'].cost.desired_posture[-14:-7] = q0Complete[-14:-7]  # for the left hand, use the default posture
             
         for i in range(maxiter):
             q, status = self.step(q)
