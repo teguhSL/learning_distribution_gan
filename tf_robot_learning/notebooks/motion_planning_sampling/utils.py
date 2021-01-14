@@ -6,8 +6,8 @@ import time
 
 #pb_joint_indices = np.array(list(np.arange(45,51)) + list(np.arange(52,58)) + [0, 1] + \
 #                list(np.arange(11,18)) +[21] + list(np.arange(28,35)) + [38,3,4]).astype(int)
-pb_joint_indices = np.array([45, 46, 47, 48, 49, 50, 52, 53, 54, 55, 56, 57,  0,  1, 11, 12, 13,
-       14, 15, 16, 17, 28, 29, 30, 31, 32, 33, 34])
+# pb_joint_indices = np.array([45, 46, 47, 48, 49, 50, 52, 53, 54, 55, 56, 57,  0,  1, 11, 12, 13,
+#        14, 15, 16, 17, 28, 29, 30, 31, 32, 33, 34])
 tf_joint_indices = np.array([ 0,  1, 28, 29, 30, 31, 32, 33, 34, 11, 12, 13, 14, 15, 16, 17, 52, 53, 54, 55, 56, 57, 45, 46, 47, 48, 49, 50])#r 'right, left'
 pb_joint_names_complete = ['torso_1_joint', 'torso_2_joint', 'imu_joint', 
                            'head_1_joint', 'head_2_joint', 'rgbd_joint', 

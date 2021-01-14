@@ -4,7 +4,7 @@ from utils import *
 from scipy.optimize import  minimize      
 import scipy
 
-class CostBoundNew:
+class CostBoundFloatingBaseNew:
     """
     This cost is to keep within the joint limits
     """
@@ -26,6 +26,30 @@ class CostBoundNew:
                 (q + self.margin > self.bounds[1])
         self.J = (stat*self.identity)[1:,1:] #the rotational velocity only has three components
         return self.J 
+
+class CostBoundNew:
+    """
+    This cost is to keep within the joint limits
+    """
+    def __init__(self, bounds, margin = 1e-3): 
+        self.bounds = bounds
+        self.dof = bounds.shape[1]
+        self.identity = np.eye(self.dof)
+        self.margin = margin
+        
+    def calc(self, q):
+        self.res = ((q - self.bounds[0]) * (q < self.bounds[0]) +  \
+                    (q - self.bounds[1]) * ( q > self.bounds[1]))
+        return self.res
+    
+    def calcDiff(self, q, recalc = False):
+        if recalc:
+            self.calc(q)        
+        stat = (q - self.margin < self.bounds[0]) + \
+                (q + self.margin > self.bounds[1])
+        self.J = stat*self.identity
+        return self.J 
+
     
 class CostCOMBoundsNew:
     """
@@ -83,7 +107,6 @@ class CostPostureNew:
 class CostFrameTranslationFloatingBaseNew():
     """
     The cost for frame translation of a floating base system. 
-    In this version, we remove the Jacobian due to the base orientation
     """   
     def __init__(self, rmodel, rdata, desired_pose, ee_frame_id , weight):  
         self.rmodel = rmodel
@@ -104,6 +127,7 @@ class CostFrameTranslationFloatingBaseNew():
         R = self.rdata.oMf[self.ee_frame_id].rotation
         J = R.dot(pin.getFrameJacobian(self.rmodel, self.rdata, self.ee_frame_id,
                                            pin.ReferenceFrame.LOCAL)[:3, :])
+        
         self.J = self.weight_matrix.dot(J)
 
         return self.J
@@ -112,7 +136,6 @@ class CostFrameSE3FloatingBaseNew():
     """
     The cost for frame placement of a floating base system. 
     The orientation is described with SE3
-    In this version, we remove the Jacobian due to the base orientation
     """   
     def __init__(self, rmodel, rdata, desired_pose, ee_frame_id , weight):  
         self.rmodel = rmodel
@@ -134,6 +157,34 @@ class CostFrameSE3FloatingBaseNew():
         J = np.dot(
             pin.Jlog6(self.rMf),
             pin.getFrameJacobian(self.rmodel, self.rdata, self.ee_frame_id, pin.ReferenceFrame.LOCAL))
+        self.J = self.weight_matrix.dot(J)
+        return self.J
+    
+class CostFrameRotationSE3FloatingBaseNew():
+    """
+    The cost for frame rotation of a floating base system. 
+    The orientation is described with SE3
+    """   
+    def __init__(self, rmodel, rdata, desired_pose, ee_frame_id , weight):  
+        self.rmodel = rmodel
+        self.rdata  = rdata
+        self.desired_pose = desired_pose
+        self.ee_frame_id = ee_frame_id
+        self.weight = weight  
+        self.weight_matrix = np.diag(weight)
+        
+    def calc(self, q):
+        pose = self.rdata.oMf[self.ee_frame_id].rotation
+        self.rMf = self.desired_pose.T.dot(pose)
+        self.res = pin.log(self.rMf)*self.weight
+        return self.res
+    
+    def calcDiff(self, q, recalc = False):
+        if recalc:
+            self.calc(q)
+        J = np.dot(
+            pin.Jlog3(self.rMf),
+            pin.getFrameJacobian(self.rmodel, self.rdata, self.ee_frame_id, pin.ReferenceFrame.LOCAL)[3:, :])
         self.J = self.weight_matrix.dot(J)
         return self.J
         
@@ -252,7 +303,10 @@ class TalosCostProjectorNew():
     
     def step(self, q, max_iter = 20):
         #find step direction
-        dq1, r2, J2, J2_pinv, N1 = self.find_direction(q)
+        if self.cost2 is None:
+            dq1 = self.find_direction(q)
+        else:
+            dq1, r2, J2, J2_pinv, N1 = self.find_direction(q)
         #line search
         #first line search
         C1 = self.cost.res.dot(self.cost.J).dot(dq1)
@@ -274,29 +328,30 @@ class TalosCostProjectorNew():
                 break
         q = qn
             
-        #second line search
-        self.update_pinocchio(q)
-        self.cost.calc(q)
-        c0 = np.sum(self.cost.res**2)
-        dq2 = J2_pinv.dot(r2 - J2.dot(alpha*dq1))
-        dq2 = N1.dot(dq2)
-        alpha2 = self.alpha2
-        c = 1e10
-        i = 0
-        while c >= c0 + 1e-3 :
-            qn = pin.integrate(self.rmodel, q, -alpha2*dq2)
-            qn = clip_bounds(qn, self.bounds)
-                
-            self.update_pinocchio(qn)
-            r = self.cost.calc(qn)
-            c = np.sum(self.cost.res**2)
-            i += 1
-            alpha2 = alpha2*self.alpha_fac
-            if i > max_iter:
-                if self.verbose: print('Cannot get a good step length2')
-                break
-        
-        q = qn
+        if self.cost2 is not None:
+            #second line search
+            self.update_pinocchio(q)
+            self.cost.calc(q)
+            c0 = np.sum(self.cost.res**2)
+            dq2 = J2_pinv.dot(r2 - J2.dot(alpha*dq1))
+            dq2 = N1.dot(dq2)
+            alpha2 = self.alpha2
+            c = 1e10
+            i = 0
+            while c >= c0 + 1e-3 :
+                qn = pin.integrate(self.rmodel, q, -alpha2*dq2)
+                qn = clip_bounds(qn, self.bounds)
+
+                self.update_pinocchio(qn)
+                r = self.cost.calc(qn)
+                c = np.sum(self.cost.res**2)
+                i += 1
+                alpha2 = alpha2*self.alpha_fac
+                if i > max_iter:
+                    if self.verbose: print('Cannot get a good step length2')
+                    break
+
+            q = qn
 
         feasible1 = False not in self.cost.feasibles
         if self.cost2 is None:
