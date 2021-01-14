@@ -279,6 +279,7 @@ class cRRT(RRT):
         is_collide = True
         status = False
         if get_valid:
+            #Get non-colliding configuration
             while status is False or is_collide is True:
                 sample = self.sampler.sample()
                 proj_sample, nfev, status = self.project(sample.flatten())
@@ -287,12 +288,12 @@ class cRRT(RRT):
             while status is False:
                 sample = self.sampler.sample()
                 self.raw_sample = sample
-#                 proj_sample = sample
-#                 status = True
-#                 nfev = 0
-                proj_sample, nfev, status = self.project(sample.flatten())
-                
-            #proj_sample, nfev = sample.flatten(), 0
+                if self.sampler.name == 'GAN': #If using GAN sampler, no need to project
+                    proj_sample = sample
+                    status = True
+                    nfev = 0
+                else:
+                    proj_sample, nfev, status = self.project(sample.flatten())                
         return proj_sample, nfev
 
     def extend(self, cur_index, sample1, sample2, step_length=0.4, max_increments=10):
@@ -496,13 +497,15 @@ class talos_sampler():
         self.base_ori = base_ori
         self.joint_sampler = joint_sampler
         self.q_ref = q_ref
+        self.name = 'Random'
+
         
     def sample(self, N=1):
         samples = []
         for i in range(N):
             sample = np.concatenate([self.base_sampler.sample()[0], self.base_ori, self.joint_sampler.sample()[0]])
             if self.q_ref is not None:
-                sample[-14:-7] = self.q_ref[-14:-7] #force the left hand to assume standard values
+                sample[-14:-7] = self.q_ref[-14:-7] #let the left hand to assume standard values
             samples += [sample]
         return np.array(samples)
 
@@ -512,11 +515,14 @@ class HybridSampler():
         self.random_sampler = random_sampler
         self.gan_sampler = gan_sampler
         self.p_random = p_random
+        self.name = 'GAN'
 
     def sample(self, N=1, _poses=None, var=1.):
         if np.random.rand() > self.p_random:
+            self.name = 'GAN'
             return self.gan_sampler.sample(N, _poses, var)
         else:
+            self.name = 'GAN'
             return self.random_sampler.sample(N)
 
 

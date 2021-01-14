@@ -4,8 +4,6 @@ from utils import *
 from scipy.optimize import  minimize      
 import scipy
 
-compute_first = True
-
 class CostBoundNew:
     """
     This cost is to keep within the joint limits
@@ -13,9 +11,8 @@ class CostBoundNew:
     def __init__(self, bounds, margin = 1e-3): 
         self.bounds = bounds
         self.dof = bounds.shape[1]
-        self.zeros = np.zeros(self.dof)
-        self.margin = margin
         self.identity = np.eye(self.dof)
+        self.margin = margin
         
     def calc(self, q):
         self.res = ((q - self.bounds[0]) * (q < self.bounds[0]) +  \
@@ -27,25 +24,21 @@ class CostBoundNew:
             self.calc(q)        
         stat = (q - self.margin < self.bounds[0]) + \
                 (q + self.margin > self.bounds[1])
-        self.J = (stat*self.identity)[1:,1:]
+        self.J = (stat*self.identity)[1:,1:] #the rotational velocity only has three components
         return self.J 
     
 class CostCOMBoundsNew:
     """
     This cost is to ensure that the COM is within the bounds
     """
-    def __init__(self, rmodel, rdata, bounds, margin = 1e-8):
+    def __init__(self, rmodel, rdata, bounds, margin = 1e-3):
         self.rmodel = rmodel
         self.rdata  = rdata
         self.bounds = bounds
-        self.zeros = np.zeros(3)
         self.margin = margin
         self.identity = np.eye(3)
-        self.J = np.zeros((3, 35))
         
     def calc(self, q):
-        if compute_first is False:
-            pin.forwardKinematics(self.rmodel, self.rdata, q)
         self.com = pin.centerOfMass(self.rmodel, self.rdata, q)
         self.res =  (self.com - self.bounds[0]) * (self.com < self.bounds[0]) +  \
                 (self.com - self.bounds[1]) * ( self.com > self.bounds[1])
@@ -54,13 +47,12 @@ class CostCOMBoundsNew:
     def calcDiff(self, q, recalc = False):
         if recalc:
             self.calc(q)
+            
         J = pin.jacobianCenterOfMass(self.rmodel, self.rdata, q)
-        #remove the gradient due to the base orientation
         stat = (self.com - self.margin < self.bounds[0]) + \
                 (self.com + self.margin > self.bounds[1])
         
-        J = (stat*self.identity).dot(J)
-        self.J = J
+        self.J = (stat*self.identity).dot(J)
         return self.J
     
 class CostPostureNew:
@@ -84,7 +76,7 @@ class CostPostureNew:
     def calcDiff(self, q, recalc = False):
         if recalc:
             self.calc(q)
-        self.J = (pin.dDifference(self.rmodel, self.desired_posture, q)[1]).dot(self.weight_matrix)
+        self.J = self.weight_matrix.dot(pin.dDifference(self.rmodel, self.desired_posture, q)[1])
         return self.J       
 
     
@@ -99,14 +91,9 @@ class CostFrameTranslationFloatingBaseNew():
         self.desired_pose = desired_pose
         self.ee_frame_id = ee_frame_id
         self.weight = weight
-        self.J = np.zeros((3, 35))
         self.weight_matrix = np.diag(weight)
         
     def calc(self, q):
-        ### Add the code to recompute your cost here
-        if compute_first is False:
-            pin.forwardKinematics(self.rmodel, self.rdata, q)
-            pin.updateFramePlacement(self.rmodel, self.rdata, self.ee_frame_id)
         self.res = self.weight*(self.rdata.oMf[self.ee_frame_id].translation-self.desired_pose) 
         return self.res
         
@@ -114,16 +101,11 @@ class CostFrameTranslationFloatingBaseNew():
         if recalc:
             self.calc(q)
             
-        self.J = self.computeJacobian(q)
-        return self.J
-            
-    def computeJacobian(self, q):
-        if compute_first is False:
-            pin.computeJointJacobians(self.rmodel, self.rdata, q)
         R = self.rdata.oMf[self.ee_frame_id].rotation
         J = R.dot(pin.getFrameJacobian(self.rmodel, self.rdata, self.ee_frame_id,
                                            pin.ReferenceFrame.LOCAL)[:3, :])
         self.J = self.weight_matrix.dot(J)
+
         return self.J
         
 class CostFrameSE3FloatingBaseNew():
@@ -139,13 +121,8 @@ class CostFrameSE3FloatingBaseNew():
         self.ee_frame_id = ee_frame_id
         self.weight = weight  
         self.weight_matrix = np.diag(weight)
-        self.J = np.zeros((6, 35))
         
     def calc(self, q):
-        ### Add the code to recompute your cost here
-        if compute_first is False:
-            pin.forwardKinematics(self.rmodel, self.rdata, q)
-            pin.updateFramePlacement(self.rmodel, self.rdata, self.ee_frame_id)
         pose = self.rdata.oMf[self.ee_frame_id] 
         self.rMf = self.desired_pose.actInv(pose)
         self.res = pin.log(self.rMf).vector*self.weight
@@ -154,14 +131,10 @@ class CostFrameSE3FloatingBaseNew():
     def calcDiff(self, q, recalc = False):
         if recalc:
             self.calc(q)
-        if compute_first is False:
-            pin.computeJointJacobians(self.rmodel, self.rdata, q)
-            pin.updateFramePlacement(self.rmodel, self.rdata, self.ee_frame_id)
         J = np.dot(
             pin.Jlog6(self.rMf),
             pin.getFrameJacobian(self.rmodel, self.rdata, self.ee_frame_id, pin.ReferenceFrame.LOCAL))
-        self.J = J
-        self.J = self.weight_matrix.dot(self.J)
+        self.J = self.weight_matrix.dot(J)
         return self.J
         
 class CostSumNew:
@@ -169,8 +142,8 @@ class CostSumNew:
         self.costs = dict()
         self.costnames = []
         self.nfev = 0
-        self.feval = 0
         self.qs = []
+        self.feval = 0
         self.feasibles = []
         self.costvals = []
         self.rmodel = rmodel
@@ -190,11 +163,6 @@ class CostSumNew:
         self.nfev += 1
         self.feasibles = []
         self.res = []
-        
-        #compute pinocchio
-        if compute_first:
-            pin.computeJointJacobians(self.rmodel, self.rdata, q)
-            pin.updateFramePlacements(self.rmodel, self.rdata)
         
         for name in self.costnames:
             cost = self.costs[name]
@@ -232,10 +200,11 @@ class CostStructureNew():
     
     
 class TalosCostProjectorNew():
-    def __init__(self, cost, rmodel, cost2 = None, alpha=1, alpha2 = 1, alpha_fac = 0.5, c1 = 1e-4, mu = 1e-4, mu_ext = 1e-6, verbose = False, bounds = None):
+    def __init__(self, cost, rmodel, rdata, cost2 = None, alpha=1, alpha2 = 1, alpha_fac = 0.2, c1 = 1e-4, mu = 1e-4, mu_ext = 1e-6, verbose = False, bounds = None):
         self.cost = cost
         self.cost2 = cost2
         self.rmodel = rmodel
+        self.rdata = rdata
         self.alpha = alpha
         self.alpha2 = alpha
         self.alpha_fac = alpha_fac
@@ -248,16 +217,22 @@ class TalosCostProjectorNew():
     def project(self, q, maxiter = 50, ftol=1e-12, gtol=1e-12, disp=0):
         self.cost.reset_iter()
         if self.cost2 is not None:
-            self.cost2.costs['posture'].cost.desired_posture = q.copy()
+            self.cost2.costs['posture'].cost.desired_posture = q.copy() #use the initial guess as the nominal posture
             
         for i in range(maxiter):
             q, status = self.step(q)
             if status is True: break
+                
         res = {'stat': status, 'q': self.cost.qs[-1], 'qs': self.cost.qs, 'nfev': i+1,
                'feval': self.cost.feval}
         return res
     
+    def update_pinocchio(self, q):
+        pin.computeJointJacobians(self.rmodel, self.rdata, q)
+        pin.updateFramePlacements(self.rmodel, self.rdata)
+    
     def find_direction(self, q):
+        self.update_pinocchio(q)
         r1 = self.cost.calc(q)
         J1 = self.cost.calcDiff(q)
         rcond =self.mu_ext + self.mu*r1.T.dot(r1) 
@@ -275,52 +250,54 @@ class TalosCostProjectorNew():
 
         return dq1, r2, J2, J2_pinv, N1
     
-    def step(self, q, max_iter = 20, line_search = True):
+    def step(self, q, max_iter = 20):
         #find step direction
         dq1, r2, J2, J2_pinv, N1 = self.find_direction(q)
         #line search
-        if line_search:
-            #first line search
-            C1 = self.cost.res.dot(self.cost.J).dot(dq1)
-            c0 = np.sum(self.cost.res**2)
-            alpha = self.alpha
-            c = 1e10
-            i = 0
-            while c >= c0 - self.c1*alpha*C1 + 1e-5 :
-                qn = pin.integrate(self.rmodel, q, -alpha*dq1)
-                qn = clip_bounds(qn, self.bounds)
-                r1 = self.cost.calc(qn)
-                c = np.sum(self.cost.res**2)
-                i += 1
-                alpha = alpha*self.alpha_fac
-                if i > max_iter:
-                    if self.verbose: print('Cannot get a good step length')
-                    break
-            q = qn
+        #first line search
+        C1 = self.cost.res.dot(self.cost.J).dot(dq1)
+        c0 = np.sum(self.cost.res**2)
+        alpha = self.alpha
+        c = 1e10
+        i = 0
+        while c >= c0 - self.c1*alpha*C1 + 1e-5 :
+            qn = pin.integrate(self.rmodel, q, -alpha*dq1)
+            qn = clip_bounds(qn, self.bounds)
+                
+            self.update_pinocchio(qn)
+            r1 = self.cost.calc(qn)
+            c = np.sum(self.cost.res**2)
+            i += 1
+            alpha = alpha*self.alpha_fac
+            if i > max_iter:
+                if self.verbose: print('Cannot get a good step length')
+                break
+        q = qn
             
-            #second line search
-            self.cost.calc(q)
-            c0 = np.sum(self.cost.res**2)
-            dq2 = J2_pinv.dot(r2 - J2.dot(alpha*dq1))
-            dq2 = N1.dot(dq2)
-            alpha2 = self.alpha2
-            c = 1e10
-            i = 0
-            while c >= c0 + 1e-3 :
-                qn = pin.integrate(self.rmodel, q, -alpha2*dq2)
-                qn = clip_bounds(qn, self.bounds)
-                r = self.cost.calc(qn)
-                c = np.sum(self.cost.res**2)
-                i += 1
-                alpha2 = alpha2*self.alpha_fac
-                if i > max_iter:
-                    if self.verbose: print('Cannot get a good step length2')
-                    break
+        #second line search
+        self.update_pinocchio(q)
+        self.cost.calc(q)
+        c0 = np.sum(self.cost.res**2)
+        dq2 = J2_pinv.dot(r2 - J2.dot(alpha*dq1))
+        dq2 = N1.dot(dq2)
+        alpha2 = self.alpha2
+        c = 1e10
+        i = 0
+        while c >= c0 + 1e-3 :
+            qn = pin.integrate(self.rmodel, q, -alpha2*dq2)
+            qn = clip_bounds(qn, self.bounds)
+                
+            self.update_pinocchio(qn)
+            r = self.cost.calc(qn)
+            c = np.sum(self.cost.res**2)
+            i += 1
+            alpha2 = alpha2*self.alpha_fac
+            if i > max_iter:
+                if self.verbose: print('Cannot get a good step length2')
+                break
         
-            q = qn
-        else:
-            q = pin.integrate(self.rmodel , q , - alpha*dq1)
-            r1 = self.cost.calc(q)
+        q = qn
+
         feasible1 = False not in self.cost.feasibles
         if self.cost2 is None:
             return q, feasible1
