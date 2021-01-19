@@ -262,16 +262,19 @@
         <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.1" iyz="0.0" izz="0.1"/>
       </inertial>
 
-  </link>-->
+  </link>
 
   <joint name="panda_hand_joint2" type="fixed">
     <parent link="panda_hand"/>
     <child link="panda_hand2"/>
-    <origin rpy="0  0" xyz="0 0 0"/>
+    <origin rpy="0 -1.5707963 0" xyz="0 0 0"/>
   </joint>
   <link name="panda_hand2">
     <visual>
-      <origin rpy="0 -1.5707963 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.0001 0.0001 0.0001" />
+      </geometry>
       <material name="">
         <color rgba="1 1 1 1"/>
       </material>
