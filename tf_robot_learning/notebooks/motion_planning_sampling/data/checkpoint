@@ -1,2 +1,2 @@
-model_checkpoint_path: "talos_foot_moved_with_data_ensemble2.ckpt"
-all_model_checkpoint_paths: "talos_foot_moved_with_data_ensemble2.ckpt"
+model_checkpoint_path: "panda_gan_target_constrained_fewdata.ckpt"
+all_model_checkpoint_paths: "panda_gan_target_constrained_fewdata.ckpt"

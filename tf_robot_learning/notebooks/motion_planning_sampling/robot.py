@@ -296,7 +296,7 @@ class cRRT(RRT):
                     proj_sample, nfev, status = self.project(sample.flatten())                
         return proj_sample, nfev
 
-    def extend(self, cur_index, sample1, sample2, step_length=0.4, max_increments=10):
+    def extend(self, cur_index, sample1, sample2, step_length=0.3, max_increments=10):
         cur_state, state_s = sample1.copy(), sample2.copy()
         next_states = [cur_state]
         nfevs = 0
@@ -393,7 +393,7 @@ class cRRT(RRT):
 
         if success is False:
             print("No solution found!")
-            return [], 0, 0, False, self.retry, 0
+            return [], 0, 0, False, self.retry, 0, 0
         print("Solution found!")
         # find the path
         path = nx.dijkstra_path(self.G, 0, self.G.number_of_nodes() - 1)
@@ -402,7 +402,7 @@ class cRRT(RRT):
         for i in path:
             traj += [self.samples[i]]
         traj = np.array(traj)
-        return traj, total_projection, total_extension, success, self.retry, toc - tic
+        return traj, total_projection, total_extension, success, self.retry, toc - tic, path
 
     def shortcut_path(self, path_in, step_length=0.1):
         # simple shortcutting algo trying to iteratively remove nodes from the path
