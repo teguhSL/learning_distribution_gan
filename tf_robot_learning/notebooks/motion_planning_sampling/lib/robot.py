@@ -288,12 +288,10 @@ class cRRT(RRT):
             while status is False:
                 sample = self.sampler.sample()
                 self.raw_sample = sample
-                if self.sampler.name == 'GAN': #If using GAN sampler, no need to project
-                    proj_sample = sample
-                    status = True
-                    nfev = 0
-                else:
-                    proj_sample, nfev, status = self.project(sample.flatten())                
+                proj_sample = sample
+                status = True
+                nfev = 0
+                #proj_sample, nfev, status = self.project(sample.flatten())                
         return proj_sample, nfev
 
     def extend(self, cur_index, sample1, sample2, step_length=0.3, max_increments=10):
@@ -497,7 +495,6 @@ class talos_sampler():
         self.base_ori = base_ori
         self.joint_sampler = joint_sampler
         self.q_ref = q_ref
-        self.name = 'Random'
 
         
     def sample(self, N=1):
@@ -515,14 +512,11 @@ class HybridSampler():
         self.random_sampler = random_sampler
         self.gan_sampler = gan_sampler
         self.p_random = p_random
-        self.name = 'GAN'
 
     def sample(self, N=1, _poses=None, var=1.):
         if np.random.rand() > self.p_random:
-            self.name = 'GAN'
             return self.gan_sampler.sample(N, _poses, var)
         else:
-            self.name = 'GAN'
             return self.random_sampler.sample(N)
 
 
