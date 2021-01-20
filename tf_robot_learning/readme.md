@@ -1,4 +1,4 @@
-# Generative Adversarial Network to Learn Valid Distributions of Robot Configurations for Inverse Kinematics and  Constrained Motion Planning#
+# Learning Constrained Distributions of Robot Configurations with Generative Adversarial Networks #
 
 In this work, we use Generative Adversarial Network (GAN) to estimate the distributions of high DoF robot configurations in a constraint manifold. It is then used for speeding up inverse kinematics and sampling-based constrained motion planning. This repository contains the code for this work.
 
