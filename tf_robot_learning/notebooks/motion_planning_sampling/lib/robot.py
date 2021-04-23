@@ -270,6 +270,7 @@ class cRRT(RRT):
         self.projector = projector
         self.samples = []
         self.max_plan = max_plan
+        self.extend_nfevs = []
 
     def project(self, q, disp=1, maxiter=50):
         res = self.projector.project(q, disp=disp, maxiter=maxiter)
@@ -291,7 +292,7 @@ class cRRT(RRT):
                 proj_sample = sample
                 status = True
                 nfev = 0
-                #proj_sample, nfev, status = self.project(sample.flatten())                
+                proj_sample, nfev, status = self.project(sample.flatten())                
         return proj_sample, nfev
 
     def extend(self, cur_index, sample1, sample2, step_length=0.3, max_increments=10):
@@ -307,6 +308,7 @@ class cRRT(RRT):
                 break
             next_state = cur_state + step_length * (state_s - cur_state) / np.linalg.norm(d)
             cur_state, nfev, status = self.project(next_state.flatten())
+            self.extend_nfevs += [nfev]
             nfevs += nfev
             self.next_state = next_state
             self.next_state_projected = cur_state
