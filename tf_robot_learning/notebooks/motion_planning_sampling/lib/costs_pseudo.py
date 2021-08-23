@@ -223,6 +223,9 @@ class CostSumNew:
         self.res = np.concatenate(self.res)
         self.feasibles = np.concatenate(self.feasibles)
         return self.res
+    
+    def calc_cost(self,q):
+        return 0.5*np.sum(self.calc(q)**2)
 
     def calcDiff(self, q, recalc = False):
         J = []
