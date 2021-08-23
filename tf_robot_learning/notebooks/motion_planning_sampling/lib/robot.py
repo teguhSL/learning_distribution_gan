@@ -273,8 +273,10 @@ class cRRT(RRT):
         self.extend_nfevs = []
 
     def project(self, q, disp=1, maxiter=50):
+#         return q, 0,True 
         res = self.projector.project(q, disp=disp, maxiter=maxiter)
-        return res['q'], res['nfev'], res['stat']
+        print(res['nfev'])
+        return res['q'], res['nfev'], True#TEGUHres['stat']
 
     def sample(self, get_valid=True):
         is_collide = True
@@ -300,6 +302,7 @@ class cRRT(RRT):
         next_states = [cur_state]
         nfevs = 0
         for n in range(max_increments):
+            print('Move {} steps'.format(n))
             d = state_s - cur_state
             d_norm = np.linalg.norm(d)
             if d_norm < step_length:
@@ -389,7 +392,7 @@ class cRRT(RRT):
             total_projection += rrt_func_calls
             if success: break
         self.retry = i
-        clear_output()
+#         clear_output()
 
         if success is False:
             print("No solution found!")

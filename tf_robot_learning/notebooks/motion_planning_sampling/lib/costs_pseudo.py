@@ -264,14 +264,18 @@ class TalosCostProjectorNew():
         self.mu_ext  = mu_ext
         self.verbose = verbose
         self.bounds = bounds
+        self.qs = []
         
     def project(self, q, maxiter = 50, ftol=1e-12, gtol=1e-12, disp=0):
+        self.qs = []
         self.cost.reset_iter()
         if self.cost2 is not None:
             self.cost2.costs['posture'].cost.desired_posture = q.copy() #use the initial guess as the nominal posture
             
         for i in range(maxiter):
             q, status = self.step(q)
+            self.qs += [q]
+            
             if status is True: break
                 
         res = {'stat': status, 'q': self.cost.qs[-1], 'qs': self.cost.qs, 'nfev': i+1,
