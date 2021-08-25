@@ -275,8 +275,7 @@ class cRRT(RRT):
     def project(self, q, disp=1, maxiter=50):
 #         return q, 0,True 
         res = self.projector.project(q, disp=disp, maxiter=maxiter)
-        print(res['nfev'])
-        return res['q'], res['nfev'], True#TEGUHres['stat']
+        return res['q'], res['nfev'], res['stat']
 
     def sample(self, get_valid=True):
         is_collide = True
@@ -297,12 +296,11 @@ class cRRT(RRT):
                 proj_sample, nfev, status = self.project(sample.flatten())                
         return proj_sample, nfev
 
-    def extend(self, cur_index, sample1, sample2, step_length=0.3, max_increments=10):
+    def extend(self, cur_index, sample1, sample2, step_length=0.3, max_increments=40):
         cur_state, state_s = sample1.copy(), sample2.copy()
         next_states = [cur_state]
         nfevs = 0
         for n in range(max_increments):
-            print('Move {} steps'.format(n))
             d = state_s - cur_state
             d_norm = np.linalg.norm(d)
             if d_norm < step_length:
@@ -507,7 +505,8 @@ class talos_sampler():
         for i in range(N):
             sample = np.concatenate([self.base_sampler.sample()[0], self.base_ori, self.joint_sampler.sample()[0]])
             if self.q_ref is not None:
-                sample[-14:-7] = self.q_ref[-14:-7] #let the left hand to assume standard values
+#                 sample[-14:-7] = self.q_ref[-14:-7] #let the left hand to assume standard values, for talos
+                sample[8+7:8+7+7] = self.q_ref[8+7:8+7+7] #let the left hand to assume standard values, for walker
             samples += [sample]
         return np.array(samples)
 

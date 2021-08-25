@@ -233,6 +233,7 @@ class CostSumNew:
             cost = self.costs[name]
             J += [cost.weight * cost.calcDiff(q, recalc)]
         self.J = np.vstack(J)
+        self.J[:,3:6] *= 0 ####TEGUH#####
         return self.J
     
 class CostStructureNew():
