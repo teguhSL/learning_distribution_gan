@@ -1,0 +1,7 @@
+numpy
+matplotlib
+jupyter
+tensorflow
+tensorflow_probability
+pyyaml
+lxml

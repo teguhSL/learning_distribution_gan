@@ -1,0 +1,7 @@
+https://blog.tensorflow.org/2019/03/variational-autoencoders-with.html
+
+https://towardsdatascience.com/6-different-ways-of-implementing-vae-with-tensorflow-2-and-tensorflow-probability-9fe34a8ab981
+https://nicola-decao.github.io/s-vae.html
+https://stackoverflow.com/questions/63188002/how-should-i-apply-a-variational-autoencoder-in-a-low-dimensional-real-value-cas
+
+https://stats.stackexchange.com/questions/332179/how-to-weight-kld-loss-vs-reconstruction-loss-in-variational-auto-encoder
