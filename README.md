@@ -3,36 +3,15 @@
 In this work, we use Generative Adversarial Network (GAN) to estimate the distributions of high DoF robot configurations in a constraint manifold. It is then used for speeding up inverse kinematics and sampling-based constrained motion planning. This repository contains the code for this work.
 
 ## Installation Procedure ##
-Install scipy:
+Install dependencies:
 ```bash
-sudo apt-get install scipy
+pip install tensorflow networkx transforms3d pybullet scipy
 ```
 
-Install tensorflow:
-```bash
-pip install tensorflow
-```
-
-
-Install networkx:
-```bash
-pip install networkx
-```
 Install pinocchio:
 ```bash
 see https://github.com/stack-of-tasks/pinocchio
 ```
-
-Install transforms3d:
-```bash
-pip install transforms3d
-```
-
-Install pybullet:
-```bash
-pip install pybullet
-```
-
 
 Then run the following code in the main folder (tf_robot_learning) for installing the library :
 ```bash

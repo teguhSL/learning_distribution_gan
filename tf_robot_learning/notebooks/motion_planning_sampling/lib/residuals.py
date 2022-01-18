@@ -1,59 +1,47 @@
-import numpy as np
 import pinocchio as pin
-from utils import *
-from scipy.optimize import  minimize      
+import numpy as np
 import scipy
+import scipy.linalg
 
-class CostBoundFloatingBaseNew:
+class ResidualBound:
     """
-    This cost is to keep within the joint limits
+    This residual is to keep within the joint limits
     """
-    def __init__(self, bounds, margin = 1e-3): 
+
+    def __init__(self, bounds, margin=1e-3):
         self.bounds = bounds
         self.dof = bounds.shape[1]
         self.identity = np.eye(self.dof)
         self.margin = margin
-        
+
     def calc(self, q):
-        self.res = ((q - self.bounds[0]) * (q < self.bounds[0]) +  \
-                    (q - self.bounds[1]) * ( q > self.bounds[1]))[1:]
+        self.res = ((q - self.bounds[0]) * (q < self.bounds[0]) + \
+                    (q - self.bounds[1]) * (q > self.bounds[1]))
         return self.res
-    
+
+    def calcDiff(self, q, recalc=False):
+        if recalc:
+            self.calc(q)
+        stat = (q - self.margin < self.bounds[0]) + \
+               (q + self.margin > self.bounds[1])
+        self.J = stat * self.identity
+        return self.J
+
+class ResidualBoundFloatingBase(ResidualBound):
+    """
+    This residual is to keep a floating base robot within the joint limits
+    """
     def calcDiff(self, q, recalc = False):
         if recalc:
             self.calc(q)        
         stat = (q - self.margin < self.bounds[0]) + \
                 (q + self.margin > self.bounds[1])
         self.J = (stat*self.identity)[1:,1:] #the rotational velocity only has three components
-        return self.J 
-
-class CostBoundNew:
-    """
-    This cost is to keep within the joint limits
-    """
-    def __init__(self, bounds, margin = 1e-3): 
-        self.bounds = bounds
-        self.dof = bounds.shape[1]
-        self.identity = np.eye(self.dof)
-        self.margin = margin
-        
-    def calc(self, q):
-        self.res = ((q - self.bounds[0]) * (q < self.bounds[0]) +  \
-                    (q - self.bounds[1]) * ( q > self.bounds[1]))
-        return self.res
+        return self.J
     
-    def calcDiff(self, q, recalc = False):
-        if recalc:
-            self.calc(q)        
-        stat = (q - self.margin < self.bounds[0]) + \
-                (q + self.margin > self.bounds[1])
-        self.J = stat*self.identity
-        return self.J 
-
-    
-class CostCOMBoundsNew:
+class ResidualCOMBounds:
     """
-    This cost is to ensure that the COM is within the bounds
+    This residual is to ensure that the COM is within the bounds
     """
     def __init__(self, rmodel, rdata, bounds, margin = 1e-3):
         self.rmodel = rmodel
@@ -79,9 +67,9 @@ class CostCOMBoundsNew:
         self.J = (stat*self.identity).dot(J)
         return self.J
     
-class CostPostureNew:
+class ResidualPosture:
     """
-    This cost is to regulate the projection around a nominal posture
+    This residual is to regulate the projection around a nominal posture
     """
     def __init__(self, rmodel, rdata, desired_posture, weights = None):
         self.rmodel = rmodel
@@ -104,9 +92,9 @@ class CostPostureNew:
         return self.J       
 
     
-class CostFrameTranslationFloatingBaseNew():
+class ResidualFrameTranslationFloatingBase():
     """
-    The cost for frame translation of a floating base system. 
+    The residual for frame translation of a floating base system.
     """   
     def __init__(self, rmodel, rdata, desired_pose, ee_frame_id , weight):  
         self.rmodel = rmodel
@@ -132,10 +120,10 @@ class CostFrameTranslationFloatingBaseNew():
 
         return self.J
         
-class CostFrameSE3FloatingBaseNew():
+class ResidualFrameSE3FloatingBase():
     """
-    The cost for frame placement of a floating base system. 
-    The orientation is described with SE3
+    The residual for frame placement of a floating base system.
+    The placement is described with SE3
     """   
     def __init__(self, rmodel, rdata, desired_pose, ee_frame_id , weight):  
         self.rmodel = rmodel
@@ -160,9 +148,9 @@ class CostFrameSE3FloatingBaseNew():
         self.J = self.weight_matrix.dot(J)
         return self.J
     
-class CostFrameRotationSE3FloatingBaseNew():
+class ResidualFrameRotationSE3FloatingBase():
     """
-    The cost for frame rotation of a floating base system. 
+    The residual for frame rotation of a floating base system.
     The orientation is described with SE3
     """   
     def __init__(self, rmodel, rdata, desired_pose, ee_frame_id , weight):  
@@ -188,8 +176,8 @@ class CostFrameRotationSE3FloatingBaseNew():
         self.J = self.weight_matrix.dot(J)
         return self.J
         
-class CostSumNew:
-    def __init__(self, rmodel,rdata):
+class ResidualSum:
+    def __init__(self, rmodel, rdata):
         self.costs = dict()
         self.costnames = []
         self.nfev = 0
@@ -205,7 +193,7 @@ class CostSumNew:
         self.qs = []
 
     def addCost(self, cost, w, name, thres=1e-4):
-        cost = CostStructureNew(cost, w, name, thres=thres)
+        cost = ResidualStructure(cost, w, name, thres=thres)
         self.costs[name] = cost
         self.costnames += [name]
 
@@ -228,15 +216,12 @@ class CostSumNew:
         return 0.5*np.sum(self.calc(q)**2)
 
     def calcDiff(self, q, recalc = False):
-        J = []
-        for i, name in enumerate(self.costnames):
-            cost = self.costs[name]
-            J += [cost.weight * cost.calcDiff(q, recalc)]
+        J = [self.costs[name].weight * self.costs[name].calcDiff(q, recalc) for name in self.costnames]
         self.J = np.vstack(J)
-        self.J[:,3:6] *= 0 ####TEGUH#####
+        # self.J[:,3:6] *= 0 ####TEGUH##### Remove the base rotation portion? Why?
         return self.J
     
-class CostStructureNew():
+class ResidualStructure():
     def __init__(self, cost, w, name, thres=1e-4):
         self.cost = cost
         self.name = name
@@ -254,7 +239,7 @@ class CostStructureNew():
         return self.J
     
     
-class TalosCostProjectorNew():
+class CostProjector():
     def __init__(self, cost, rmodel, rdata, cost2 = None, alpha=1, alpha2 = 1, alpha_fac = 0.2, c1 = 1e-4, mu = 1e-4, mu_ext = 1e-6, verbose = False, bounds = None):
         self.cost = cost
         self.cost2 = cost2
@@ -270,7 +255,7 @@ class TalosCostProjectorNew():
         self.bounds = bounds
         self.qs = []
         
-    def project(self, q, maxiter = 50, ftol=1e-12, gtol=1e-12, disp=0):
+    def project(self, q, maxiter = 50):
         self.qs = []
         self.cost.reset_iter()
         if self.cost2 is not None:
@@ -294,8 +279,8 @@ class TalosCostProjectorNew():
         self.update_pinocchio(q)
         r1 = self.cost.calc(q)
         J1 = self.cost.calcDiff(q)
-        rcond =self.mu_ext + self.mu*r1.T.dot(r1) 
-        J1_pinv = scipy.linalg.pinv(J1, rcond=rcond)
+        rcond1 = self.mu_ext + self.mu*r1.T.dot(r1)
+        J1_pinv = scipy.linalg.pinv(J1, rcond=rcond1)
         dq1 = J1_pinv.dot(r1)
         
         if self.cost2 is None:
@@ -315,16 +300,17 @@ class TalosCostProjectorNew():
             dq1 = self.find_direction(q)
         else:
             dq1, r2, J2, J2_pinv, N1 = self.find_direction(q)
+
         #line search
         #first line search
         C1 = self.cost.res.dot(self.cost.J).dot(dq1)
         c0 = np.sum(self.cost.res**2)
         alpha = self.alpha
-        c = 1e10
+        c = np.inf
         i = 0
         while c >= c0 - self.c1*alpha*C1 + 1e-5 :
             qn = pin.integrate(self.rmodel, q, -alpha*dq1)
-            qn = clip_bounds(qn, self.bounds)
+            # qn = clip_bounds(qn, self.bounds) #With this clipping, the behavior is often worse
                 
             self.update_pinocchio(qn)
             r1 = self.cost.calc(qn)
@@ -344,7 +330,7 @@ class TalosCostProjectorNew():
             dq2 = J2_pinv.dot(r2 - J2.dot(alpha*dq1))
             dq2 = N1.dot(dq2)
             alpha2 = self.alpha2
-            c = 1e10
+            c = np.inf
             i = 0
             while c >= c0 + 1e-3 :
                 qn = pin.integrate(self.rmodel, q, -alpha2*dq2)
