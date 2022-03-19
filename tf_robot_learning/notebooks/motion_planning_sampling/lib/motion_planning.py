@@ -2,8 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from IPython.display import clear_output
 import networkx as nx
-
+from pb_utils.visualize import set_q
 import matplotlib
+import pybullet as p
+import time
 
 class RRT():
     def __init__(self, D, sampler, col_checker, interpolator):
@@ -79,7 +81,7 @@ class RRT():
         nearest_index, nearest_sample = self.find_nearest(self.random_sample, np.array(self.samples))
 
         #extend to the random state
-        self.next_states,_ = self.extend(nearest_index[0], nearest_sample.flatten(), self.random_sample.flatten() )
+        self.next_states = self.extend(nearest_index[0], nearest_sample.flatten(), self.random_sample.flatten() )
         
         #check distance with goal state
         nearest_index, nearest_sample = self.find_nearest(self.goal_state, np.array(self.samples))
@@ -89,7 +91,7 @@ class RRT():
         print('Reached a random state...')
         print(nearest_sample)
         #input()
-        self.next_states_goal,_ = self.extend(nearest_index[0], nearest_sample.flatten(), self.goal_state.flatten())
+        self.next_states_goal = self.extend(nearest_index[0], nearest_sample.flatten(), self.goal_state.flatten())
         #print(next_states)
         if len(self.next_states_goal) == 0: return False
         clear_output()
@@ -168,9 +170,9 @@ class cRRT(RRT):
         self.max_plan = max_plan
         self.extend_nfevs = []
 
-    def project(self, q, disp=1, maxiter=50):
+    def project(self, q, maxiter=50):
 #         return q, 0,True 
-        res = self.projector.project(q, disp=disp, maxiter=maxiter)
+        res = self.projector.project(q, maxiter=maxiter)
         return res['q'], res['nfev'], res['stat']
 
     def sample(self, get_valid=True):
@@ -360,11 +362,12 @@ class talos_sampler():
     """
     Sampler for Talos: for base and joint angles
     """
-    def __init__(self, base_sampler, base_ori, joint_sampler, q_ref = None):
+    def __init__(self, base_sampler, base_ori, joint_sampler, ignore_indices = [], q_ref = None):
         self.base_sampler = base_sampler
         self.base_ori = base_ori
         self.joint_sampler = joint_sampler
         self.q_ref = q_ref
+        self.ignore_indices = np.array(ignore_indices)
 
         
     def sample(self, N=1):
@@ -373,7 +376,8 @@ class talos_sampler():
             sample = np.concatenate([self.base_sampler.sample()[0], self.base_ori, self.joint_sampler.sample()[0]])
             if self.q_ref is not None:
 #                 sample[-14:-7] = self.q_ref[-14:-7] #let the left hand to assume standard values, for talos
-                sample[8+7:8+7+7] = self.q_ref[8+7:8+7+7] #let the left hand to assume standard values, for walker
+#                 sample[8+7:8+7+7] = self.q_ref[8+7:8+7+7] #let the left hand to assume standard values, for walker
+                sample[self.ignore_indices] = self.q_ref[self.ignore_indices] #let the left hand to assume     
             samples += [sample]
         return np.array(samples)
 
@@ -403,18 +407,47 @@ class interpolator():
         states = lin_interpolate(state1, state2, N)
         return states
 
-def check_collision(robot_id, object_ids, omit_indices=[-1]):
-    col_info = []
-    is_col = False
-    for object_id in object_ids:
-        ress = p.getClosestPoints(robot_id, object_id, distance=2)
-        for res in ress:
-            if res[3] in omit_indices:
-                continue
-            if res[8] < 0:
-                is_col = True
-                col_info += [(res[3], res[4], res[7], res[8])]  # linkA, linkB, normal, distance
-    return is_col, col_info
+# def check_collision(robot_id, object_ids, omit_indices=[-1]):
+#     col_info = []
+#     is_col = False
+#     for object_id in object_ids:
+#         ress = p.getClosestPoints(robot_id, object_id, distance=2)
+#         for res in ress:
+#             if res[3] in omit_indices:
+#                 continue
+#             if res[8] < 0:
+#                 is_col = True
+#                 col_info += [(res[3], res[4], res[7], res[8])]  # linkA, linkB, normal, distance
+#     return is_col, col_info
+
+def check_collision(robot_id, object_ids, omit_indices=[-1], verbose=True):
+    p.performCollisionDetection()
+    self_collision = False
+    collision = False
+    conts = p.getContactPoints(robot_id, robot_id)
+    # contact distance, positive for separation, negative for penetration
+    if len(conts) >= 1:
+        for cont in conts:
+            distance = cont[8]
+            if distance < 1e-3: # if smaller than 1 mm
+                if verbose:
+                    print("Robot's ", link_names[cont[3]], " is in contact with the link ",
+                  link_names[cont[4]], "with a contact distance of ", distance)
+                self_collision = True
+
+            if self_collision: 
+                return self_collision or collision, None
+                
+    if not self_collision:
+        for object_id in object_ids:
+            conts = p.getContactPoints(robot_id, object_id)
+            if len(conts) >= 1:
+                for cont in conts:
+                    if cont[8] < 1e-3:
+                        collision = True
+                        return self_collision or collision, None
+    
+    return self_collision or collision, None
 
 class col_checker():
     def __init__(self, robot_id, joint_indices, object_ids, omit_indices=[-1], floating_base = False):
@@ -426,7 +459,7 @@ class col_checker():
 
     def check_collision(self, q):
         if self.floating_base:
-            set_q(self.robot_id, self.joint_indices, q, True)
+            set_q(q, self.robot_id, self.joint_indices, True)
         else:
-            set_q(self.robot_id, self.joint_indices, q)
+            set_q(q, self.robot_id, self.joint_indices)
         return check_collision(self.robot_id, self.object_ids, omit_indices=self.omit_indices)[0]

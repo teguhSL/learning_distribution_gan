@@ -31,6 +31,11 @@ class ResidualBoundFloatingBase(ResidualBound):
     """
     This residual is to keep a floating base robot within the joint limits
     """
+    def calc(self, q):
+        self.res = ((q - self.bounds[0]) * (q < self.bounds[0]) + \
+                    (q - self.bounds[1]) * (q > self.bounds[1]))
+        return self.res[1:] #the rotational orientation only has three components, and we assume the base position and orientation is not bounded so we can do this "hardcoded" way
+
     def calcDiff(self, q, recalc = False):
         if recalc:
             self.calc(q)        
@@ -177,7 +182,7 @@ class ResidualFrameRotationSE3FloatingBase():
         return self.J
         
 class ResidualSum:
-    def __init__(self, rmodel, rdata):
+    def __init__(self, rmodel, rdata, ignore_indices = []):
         self.costs = dict()
         self.costnames = []
         self.nfev = 0
@@ -187,6 +192,7 @@ class ResidualSum:
         self.costvals = []
         self.rmodel = rmodel
         self.rdata = rdata
+        self.ignore_indices = np.array(ignore_indices)
 
     def reset_iter(self):
         self.nfev = 0
@@ -219,6 +225,8 @@ class ResidualSum:
         J = [self.costs[name].weight * self.costs[name].calcDiff(q, recalc) for name in self.costnames]
         self.J = np.vstack(J)
         # self.J[:,3:6] *= 0 ####TEGUH##### Remove the base rotation portion? Why?
+        if len(self.ignore_indices) > 0:
+            self.J[:, self.ignore_indices] *= 0
         return self.J
     
 class ResidualStructure():
@@ -240,13 +248,13 @@ class ResidualStructure():
     
     
 class CostProjector():
-    def __init__(self, cost, rmodel, rdata, cost2 = None, alpha=1, alpha2 = 1, alpha_fac = 0.2, c1 = 1e-4, mu = 1e-4, mu_ext = 1e-6, verbose = False, bounds = None):
-        self.cost = cost
-        self.cost2 = cost2
+    def __init__(self, cost, rmodel, rdata, cost2 = None, alpha=1, alpha2 = 1, alpha_fac = 0.5, c1 = 1e-4, mu = 1e-4, mu_ext = 1e-6, verbose = False, bounds = None):
+        self.cost = cost #cost with the second priority
+        self.cost2 = cost2 #cost with the second priority
         self.rmodel = rmodel
         self.rdata = rdata
         self.alpha = alpha
-        self.alpha2 = alpha
+        self.alpha2 = alpha2
         self.alpha_fac = alpha_fac
         self.c1 = c1 #coefficient for line search
         self.mu = mu
@@ -256,15 +264,19 @@ class CostProjector():
         self.qs = []
         
     def project(self, q, maxiter = 50):
+        """
+        Optimize the configuration q to minimize the cost
+        """
         self.qs = []
         self.cost.reset_iter()
+
         if self.cost2 is not None:
-            self.cost2.costs['posture'].cost.desired_posture = q.copy() #use the initial guess as the nominal posture
+            if 'posture' in self.cost2.costnames:
+                self.cost2.costs['posture'].cost.desired_posture = q.copy() #use the initial guess as the nominal posture
             
         for i in range(maxiter):
             q, status = self.step(q)
             self.qs += [q]
-            
             if status is True: break
                 
         res = {'stat': status, 'q': self.cost.qs[-1], 'qs': self.cost.qs, 'nfev': i+1,
@@ -272,10 +284,16 @@ class CostProjector():
         return res
     
     def update_pinocchio(self, q):
+        """
+        Calculate the forward kinematics for all frames
+        """
         pin.computeJointJacobians(self.rmodel, self.rdata, q)
         pin.updateFramePlacements(self.rmodel, self.rdata)
     
     def find_direction(self, q):
+        """
+        Find the direction for the next gradient step
+        """
         self.update_pinocchio(q)
         r1 = self.cost.calc(q)
         J1 = self.cost.calcDiff(q)
@@ -291,10 +309,12 @@ class CostProjector():
         rcond2 = self.mu_ext #+  self.mu*r2.T.dot(r2) 
         J2 = self.cost2.calcDiff(q)
         J2_pinv = scipy.linalg.pinv(J2.dot(N1), rcond = rcond2)
-
         return dq1, r2, J2, J2_pinv, N1
     
     def step(self, q, max_iter = 20):
+        """"
+        Make one step to optimize the variable q
+        """
         #find step direction
         if self.cost2 is None:
             dq1 = self.find_direction(q)
@@ -334,7 +354,7 @@ class CostProjector():
             i = 0
             while c >= c0 + 1e-3 :
                 qn = pin.integrate(self.rmodel, q, -alpha2*dq2)
-                qn = clip_bounds(qn, self.bounds)
+                # qn = clip_bounds(qn, self.bounds)
 
                 self.update_pinocchio(qn)
                 r = self.cost.calc(qn)
@@ -347,13 +367,40 @@ class CostProjector():
 
             q = qn
 
+        self.cost.calc(q)
         feasible1 = False not in self.cost.feasibles
         if self.cost2 is None:
             return q, feasible1
         else:
-            r2 = self.cost2.calc(q)
+            self.cost2.calc(q)
             feasible2 = False not in self.cost2.feasibles
             return q, (feasible1 and feasible2)
-        
+
+    def check_config(self, q):
+        i = 0
+        print('\n CHECKING')
+        print('Residual names:')
+        for name in self.cost.costnames:
+            print(name, end=',')
+        print("")
+        print("")
+        print('Residual values:')
+        for name in self.cost.costnames:
+            print(self.cost.costs[name].res, end=',')
+        print("")
+        print("")
+
+        print('Jacobian SVD:')
+        print(np.linalg.svd(self.cost.J)[1])
+        print("")
+
+        print('Next direction:')
+        self.dq1 = self.find_direction(q)
+        print(self.dq1)
+
+
+
+
+
 def clip_bounds(q, bounds):
     return np.clip(q, bounds[0], bounds[1])

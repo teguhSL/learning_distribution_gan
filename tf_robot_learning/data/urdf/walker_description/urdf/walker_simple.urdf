@@ -570,7 +570,7 @@
   </link>
   <joint
       name="right_thumb_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.029243 -0.01232 0.046918"
         rpy="0.2841 0.15098 -0.74405"/>
@@ -628,7 +628,7 @@
   </link>
   <joint
       name="right_thumb_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.03655 0 -0.014481"
         rpy="-9.1041E-12 5.5133E-12 0.77938"/>
@@ -686,7 +686,7 @@
   </link>
   <joint
       name="right_index_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="-0.017699 -0.07587 0.055574"
         rpy="0.02196 0.053684 -1.3927"/>
@@ -744,7 +744,7 @@
   </link>
   <joint
       name="right_index_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.038459 0 -0.012377"
         rpy="-0.056721 0.01211 1.393"/>
@@ -802,7 +802,7 @@
   </link>
   <joint
       name="right_middle_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="-0.018928 -0.080828 0.031376"
         rpy="0.025306 0.052053 -1.3281"/>
@@ -860,7 +860,7 @@
   </link>
   <joint
       name="right_middle_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.038459 0 -0.0122"
         rpy="-0.056603 0.012064 1.3285"/>
@@ -918,7 +918,7 @@
   </link>
   <joint
       name="right_ring_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="-0.017845 -0.074821 0.007677"
         rpy="-3.1203 0.05396 -1.4056"/>
@@ -976,7 +976,7 @@
   </link>
   <joint
       name="right_ring_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.038461 0 0.012203"
         rpy="3.0849 -0.012117 -1.4058"/>
@@ -1034,7 +1034,7 @@
   </link>
   <joint
       name="right_pinky_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="-0.018167 -0.069717 -0.015649"
         rpy="0.063832 0.04715 -1.3412"/>
@@ -1092,7 +1092,7 @@
   </link>
   <joint
       name="right_pinky_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.033786 -0.00038214 -0.010543"
         rpy="7.2607E-05 6.2497E-06 1.3443"/>
@@ -1631,7 +1631,7 @@
   </link>
   <joint
       name="left_thumb_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="-0.029569 -0.010189 0.047224"
         rpy="-0.21969 0.11307 -2.3458"/>
@@ -1689,7 +1689,7 @@
   </link>
   <joint
       name="left_thumb_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.03655 0 -0.014552"
         rpy="-0.23401 -0.07871 2.3426"/>
@@ -1747,7 +1747,7 @@
   </link>
   <joint
       name="left_index_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.019862 -0.070838 0.061199"
         rpy="0.007028 -0.014656 -1.7541"/>
@@ -1805,7 +1805,7 @@
   </link>
   <joint
       name="left_index_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.038461 0 -0.012199"
         rpy="0.015691 0.0042391 1.7541"/>
@@ -1863,7 +1863,7 @@
   </link>
   <joint
       name="left_middle_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.021755 -0.077461 0.037447"
         rpy="0.0068833 -0.014869 -1.7395"/>
@@ -1921,7 +1921,7 @@
   </link>
   <joint
       name="left_middle_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.038459 0 -0.0122"
         rpy="0.015814 0.0042886 1.7395"/>
@@ -1979,7 +1979,7 @@
   </link>
   <joint
       name="left_ring_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.020863 -0.073224 0.013361"
         rpy="0.0058882 -0.015148 -1.6781"/>
@@ -2037,7 +2037,7 @@
   </link>
   <joint
       name="left_ring_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.038459 0 -0.012203"
         rpy="0.015691 0.0042325 1.6781"/>
@@ -2095,7 +2095,7 @@
   </link>
   <joint
       name="left_pinky_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.021779 -0.069944 -0.010184"
         rpy="-0.034105 -0.016248 -1.6441"/>
@@ -2153,7 +2153,7 @@
   </link>
   <joint
       name="left_pinky_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0.03311 0.00034528 -0.00040579"
         rpy="0.013704 -0.035204 1.6442"/>
@@ -2211,7 +2211,7 @@
   </link>
   <joint
       name="head_j1"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0 -0.00016327 0.098503"
         rpy="0.0016575 -7.7846E-07 -1.2903E-09"/>
@@ -2270,7 +2270,7 @@
   </link>
   <joint
       name="head_j2"
-      type="revolute">
+      type="fixed">
     <origin
         xyz="0 0 0"
         rpy="1.5708 0 0"/>
